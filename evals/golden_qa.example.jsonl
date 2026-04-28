@@ -1,0 +1,2 @@
+{"id":"q001","question":"What is the main topic of the document?","expected_answer":"Replace with the expected answer.","expected_source_filename":"sample.pdf","expected_page":1,"should_answer":true}
+{"id":"q002","question":"What unsupported claim should the assistant refuse to answer?","expected_answer":"I could not find this in the uploaded documents.","expected_source_filename":null,"expected_page":null,"should_answer":false}
