@@ -4,8 +4,8 @@ Production-focused RAG platform for document ingestion, hybrid retrieval, citati
 
 ## Live Demo
 
-- Frontend: `Coming soon - deploy frontend/ to Vercel`
-- Backend API: `Coming soon - deploy FastAPI service to Render, Railway, or Cloud Run`
+- Frontend: Demo coming soon
+- Backend API: Demo coming soon
 - Local API docs: `http://localhost:8000/docs`
 
 ## Problem
