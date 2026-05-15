@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DocuMind AI Copilot</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0a0f1e; --panel:rgba(18,27,48,.72); --line:rgba(148,163,184,.24); --text:#eef4ff; --muted:#9fb0ca; --accent:#64e4c5; --accent2:#7aa7ff; --danger:#ff6b7a; }
+    * { box-sizing: border-box; }
+    body { margin:0; min-height:100vh; overflow:hidden; background:radial-gradient(circle at 18% 8%,rgba(100,228,197,.18),transparent 28%),radial-gradient(circle at 78% 12%,rgba(122,167,255,.16),transparent 30%),var(--bg); color:var(--text); font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; letter-spacing:0; }
+    button,input { font:inherit; } button { cursor:pointer; }
+    .app { display:grid; grid-template-columns:340px 1fr; height:100vh; gap:18px; padding:18px; }
+    .sidebar,.main { border:1px solid var(--line); background:var(--panel); box-shadow:0 24px 80px rgba(0,0,0,.36); backdrop-filter:blur(22px); }
+    .sidebar { border-radius:18px; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+    .brand { display:flex; gap:12px; align-items:center; padding:22px; border-bottom:1px solid var(--line); }
+    .mark { width:42px; height:42px; border-radius:12px; display:grid; place-items:center; background:linear-gradient(145deg,var(--accent),var(--accent2)); color:#05101c; font-weight:900; }
+    h1 { margin:0; font-size:1rem; line-height:1.1; } .brand span,.muted { color:var(--muted); font-size:.78rem; }
+    .upload { margin:18px; min-height:172px; border:1px dashed rgba(148,163,184,.45); border-radius:16px; display:grid; place-items:center; text-align:center; padding:18px; background:rgba(255,255,255,.04); transition:.16s ease; }
+    .upload.dragging { border-color:var(--accent); background:rgba(100,228,197,.09); transform:translateY(-2px); }
+    .upload input { display:none; } .upload svg { color:var(--accent); margin-bottom:10px; } .upload strong { display:block; margin-bottom:6px; } .upload small { color:var(--muted); line-height:1.5; }
+    .ghost,.icon,.send { border:1px solid var(--line); background:rgba(255,255,255,.06); color:var(--text); border-radius:12px; transition:.14s ease; }
+    .ghost { margin-top:12px; padding:10px 14px; } .ghost:hover,.icon:hover { background:rgba(255,255,255,.1); transform:translateY(-1px); }
+    .section-title { display:flex; justify-content:space-between; padding:0 18px 10px; color:var(--muted); font-size:.78rem; text-transform:uppercase; letter-spacing:.08em; }
+    .docs { overflow:auto; padding:0 12px 18px; }
+    .doc { display:grid; grid-template-columns:1fr 36px; gap:10px; align-items:center; padding:12px; margin:6px 0; border-radius:12px; background:rgba(255,255,255,.045); border:1px solid transparent; animation:rise .22s ease both; }
+    .doc:hover { border-color:var(--line); } .doc strong { display:block; font-size:.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .doc small { color:var(--muted); display:block; margin-top:4px; }
+    .icon { width:36px; height:36px; display:grid; place-items:center; }
+    .main { border-radius:22px; display:grid; grid-template-rows:auto 1fr auto; overflow:hidden; min-width:0; position:relative; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:18px 22px; border-bottom:1px solid var(--line); background:rgba(10,15,30,.32); }
+    .topbar h2 { margin:0; font-size:1.05rem; } .status { display:inline-flex; align-items:center; gap:8px; color:var(--muted); font-size:.86rem; } .dot { width:9px; height:9px; border-radius:999px; background:var(--accent); box-shadow:0 0 16px var(--accent); }
+    .chat { overflow-y:auto; padding:24px 22px 130px; scroll-behavior:smooth; }
+    .empty { height:100%; display:grid; place-items:center; text-align:center; color:var(--muted); } .empty h3 { color:var(--text); margin:0 0 10px; font-size:clamp(1.6rem,3vw,2.7rem); } .empty p { margin:0; max-width:520px; line-height:1.7; }
+    .message { display:flex; margin:16px 0; animation:rise .22s ease both; } .message.user { justify-content:flex-end; }
+    .bubble { width:min(760px,88%); border:1px solid var(--line); border-radius:18px; padding:14px 16px; line-height:1.65; background:rgba(15,23,42,.72); overflow-wrap:anywhere; }
+    .user .bubble { background:linear-gradient(145deg,rgba(100,228,197,.22),rgba(122,167,255,.18)); border-color:rgba(100,228,197,.28); }
+    .bubble p { margin:0 0 10px; } .bubble p:last-child { margin-bottom:0; } code { padding:2px 6px; border-radius:7px; background:rgba(255,255,255,.08); color:#d8fff4; }
+    .meta { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .chip,.confidence { display:inline-flex; align-items:center; gap:6px; padding:6px 9px; border-radius:999px; border:1px solid var(--line); color:var(--muted); background:rgba(255,255,255,.05); font-size:.78rem; }
+    .confidence { color:#d8fff4; border-color:rgba(100,228,197,.28); }
+    .composer { position:absolute; left:22px; right:22px; bottom:22px; border:1px solid var(--line); border-radius:20px; background:rgba(6,11,23,.82); backdrop-filter:blur(20px); box-shadow:0 18px 50px rgba(0,0,0,.32); padding:12px; display:grid; grid-template-columns:1fr 48px; gap:10px; }
+    .composer input { min-width:0; border:0; outline:0; color:var(--text); background:transparent; padding:0 6px; }
+    .send { width:48px; height:48px; display:grid; place-items:center; background:linear-gradient(145deg,var(--accent),var(--accent2)); color:#04101c; border:0; } .send:disabled { opacity:.55; cursor:wait; }
+    .hint { position:absolute; bottom:-22px; left:16px; color:var(--muted); font-size:.74rem; }
+    .skeleton { width:min(650px,80%); border-radius:18px; padding:16px; border:1px solid var(--line); background:rgba(15,23,42,.72); }
+    .bar { height:12px; border-radius:999px; margin:9px 0; background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(255,255,255,.16),rgba(255,255,255,.06)); background-size:220% 100%; animation:shimmer 1.2s infinite; }
+    .toasts { position:fixed; right:20px; top:20px; z-index:20; display:grid; gap:10px; width:min(360px,calc(100vw - 40px)); } .toast { border:1px solid var(--line); border-radius:14px; padding:12px 14px; background:rgba(10,15,30,.9); box-shadow:0 24px 80px rgba(0,0,0,.36); animation:rise .18s ease both; } .toast.error { border-color:rgba(255,107,122,.5); }
+    @keyframes shimmer { from { background-position:120% 0; } to { background-position:-120% 0; } } @keyframes rise { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    @media (max-width:860px) { body { overflow:auto; } .app { height:auto; min-height:100vh; grid-template-columns:1fr; padding:12px; } .sidebar { max-height:46vh; } .main { min-height:72vh; } .chat { padding-bottom:128px; } .topbar { align-items:flex-start; flex-direction:column; } .composer { left:12px; right:12px; bottom:12px; } .bubble { width:94%; } }
+  </style>
+</head>
+<body>
+  <div class="toasts" id="toasts"></div>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><div class="mark">D</div><div><h1>DocuMind AI Copilot</h1><span>DeepSeek via OpenRouter</span></div></div>
+      <label class="upload" id="dropzone">
+        <input id="fileInput" type="file" accept="application/pdf" />
+        <div>
+          <svg width="42" height="42" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 16V4m0 0 4 4m-4-4-4 4M4 16.5V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <strong>Drop PDF to index</strong><small>Up to 10MB and 100 pages. Files persist in /tmp across app restarts.</small><br />
+          <button class="ghost" type="button" id="browseBtn">Choose PDF</button>
+        </div>
+      </label>
+      <div class="section-title"><span>Documents</span><span id="docCount">0</span></div>
+      <div class="docs" id="docs"></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><h2>Ask your uploaded PDFs</h2><div class="status"><span class="dot"></span><span id="health">Checking system</span></div></header>
+      <section class="chat" id="chat"><div class="empty" id="empty"><div><h3>Ready when your documents are.</h3><p>Upload a PDF, then ask for summaries, comparisons, clauses, figures, or page-grounded answers with citations and confidence.</p></div></div></section>
+      <form class="composer" id="composer"><input id="message" autocomplete="off" placeholder="Ask a question about the indexed documents..." /><button class="send" id="send" aria-label="Send message"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 14-7-4 14-3-6-7-1Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg></button><span class="hint">Enter to send</span></form>
+    </main>
+  </div>
+  <script>
+    const $=s=>document.querySelector(s), docs=$("#docs"), docCount=$("#docCount"), fileInput=$("#fileInput"), browse=$("#browseBtn"), drop=$("#dropzone"), chat=$("#chat"), composer=$("#composer"), input=$("#message"), send=$("#send"), health=$("#health"), toasts=$("#toasts");
+    let busy=false;
+    function toast(message,type="info"){const n=document.createElement("div");n.className=`toast ${type}`;n.textContent=message;toasts.appendChild(n);setTimeout(()=>n.remove(),4200)}
+    function esc(v){return v.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+    function md(v){let h=esc(v);h=h.replace(/```([\s\S]*?)```/g,"<pre><code>$1</code></pre>").replace(/`([^`]+)`/g,"<code>$1</code>").replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>").replace(/\[p\.\s*(\d+)\]/gi,'<span class="chip">p. $1</span>');return h.split(/\n{2,}/).map(b=>`<p>${b.replace(/\n/g,"<br>")}</p>`).join("")}
+    async function api(path,opt={}){const r=await fetch(path,opt);if(!r.ok){let d=r.statusText;try{d=(await r.json()).detail||d}catch{}throw new Error(d)}return r.json()}
+    async function refresh(){const [h,d]=await Promise.all([api("/api/v1/health"),api("/api/v1/documents")]);health.textContent=`${h.documents} docs indexed`;docCount.textContent=d.documents.length;docs.innerHTML="";if(!d.documents.length){docs.innerHTML='<div class="doc"><div><strong>No documents yet</strong><small>Upload a PDF to begin.</small></div></div>';return}for(const doc of d.documents){const row=document.createElement("div");row.className="doc";row.innerHTML=`<div><strong title="${esc(doc.filename)}">${esc(doc.filename)}</strong><small>${doc.page_count} pages · ${doc.chunk_count} chunks</small></div><button class="icon" title="Delete document" aria-label="Delete document">×</button>`;row.querySelector("button").onclick=async()=>{await api(`/api/v1/documents/${doc.id}`,{method:"DELETE"});toast("Document deleted");refresh()};docs.appendChild(row)}}
+    async function upload(file){if(!file)return;if(file.size>10*1024*1024){toast("PDF is larger than 10MB","error");return}const form=new FormData();form.append("file",file);toast("Indexing document...");const r=await fetch("/api/v1/upload",{method:"POST",body:form});if(!r.ok){let d=r.statusText;try{d=(await r.json()).detail||d}catch{}toast(d,"error");return}const data=await r.json();toast(`Indexed ${data.document.filename}`);refresh()}
+    function msg(role,text=""){document.querySelector("#empty")?.remove();const wrap=document.createElement("div");wrap.className=`message ${role}`;const b=document.createElement("div");b.className="bubble";b.innerHTML=md(text);wrap.appendChild(b);chat.appendChild(wrap);chat.scrollTop=chat.scrollHeight;return b}
+    function skeleton(){document.querySelector("#empty")?.remove();const w=document.createElement("div");w.className="message assistant";w.innerHTML='<div class="skeleton"><div class="bar" style="width:90%"></div><div class="bar" style="width:72%"></div><div class="bar" style="width:48%"></div></div>';chat.appendChild(w);chat.scrollTop=chat.scrollHeight;return w}
+    function meta(b,citations,confidence){const m=document.createElement("div");m.className="meta";m.innerHTML=`<span class="confidence">${Math.round((confidence||0)*100)}% confidence</span>`;for(const c of citations||[]){const chip=document.createElement("span");chip.className="chip";chip.title=c.snippet||"";chip.textContent=`${c.filename} · p. ${c.page}`;m.appendChild(chip)}b.appendChild(m)}
+    async function ask(text){if(busy||!text.trim())return;busy=true;send.disabled=true;msg("user",text.trim());const sk=skeleton();let b,answer="",last={citations:[],confidence:0};try{const r=await fetch("/api/v1/chat/stream",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:text.trim()})});if(!r.ok||!r.body)throw new Error((await r.json()).detail||"Chat failed");sk.remove();b=msg("assistant","");const reader=r.body.getReader(),dec=new TextDecoder();let buf="";while(true){const {value,done}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});const evs=buf.split("\n\n");buf=evs.pop()||"";for(const raw of evs){const name=(raw.match(/^event: (.+)$/m)||[])[1], line=(raw.match(/^data: (.+)$/m)||[])[1];if(!line)continue;const data=JSON.parse(line);if(name==="metadata")last=data;if(name==="token"){answer+=data.text;b.innerHTML=md(answer);chat.scrollTop=chat.scrollHeight}if(name==="error")throw new Error(data.detail||"Streaming failed");if(name==="done"){last=data;b.innerHTML=md(data.answer||answer);meta(b,last.citations,last.confidence)}}}}catch(e){sk.remove();if(!b)b=msg("assistant","");b.textContent="Something went wrong while answering.";toast(e.message||"Chat failed","error")}finally{busy=false;send.disabled=false}}
+    browse.onclick=()=>fileInput.click();fileInput.onchange=e=>upload(e.target.files[0]);drop.ondragover=e=>{e.preventDefault();drop.classList.add("dragging")};drop.ondragleave=()=>drop.classList.remove("dragging");drop.ondrop=e=>{e.preventDefault();drop.classList.remove("dragging");upload(e.dataTransfer.files[0])};composer.onsubmit=e=>{e.preventDefault();const text=input.value;input.value="";ask(text)};refresh().catch(e=>toast(e.message,"error"));
+  </script>
+</body>
+</html>
