@@ -12,9 +12,9 @@ export type ConsoleSettings = {
 };
 
 const defaultSettings: ConsoleSettings = {
-  apiBaseUrl: process.env.NEXT_PUBLIC_RAG_API_BASE_URL || "http://127.0.0.1:8000",
-  apiKey: process.env.NEXT_PUBLIC_RAG_API_KEY || "dev-user-key",
-  mode: "local"
+  apiBaseUrl: process.env.NEXT_PUBLIC_RAG_API_BASE_URL || "",
+  apiKey: process.env.NEXT_PUBLIC_RAG_API_KEY || "",
+  mode: process.env.NEXT_PUBLIC_RAG_API_BASE_URL ? "prod" : "local"
 };
 
 type SettingsContextValue = {

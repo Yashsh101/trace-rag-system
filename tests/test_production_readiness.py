@@ -9,7 +9,7 @@ def test_production_config_requires_admin_keys():
     with pytest.raises(ValueError, match="ADMIN_API_KEYS"):
         Settings(
             app_env="production",
-            openai_api_key="sk-real",
+            **{"openai_api_key": "test-openai-key"},
             user_api_keys="user-real:user-1:default",
             cors_allowed_origins="https://rag.example.com",
             storage_backend="s3",
@@ -23,7 +23,7 @@ def test_production_config_rejects_wildcard_cors():
     with pytest.raises(ValueError, match="Strict CORS"):
         Settings(
             app_env="production",
-            openai_api_key="sk-real",
+            **{"openai_api_key": "test-openai-key"},
             admin_api_keys="admin-real",
             user_api_keys="user-real:user-1:default",
             cors_allowed_origins="*",
@@ -72,4 +72,3 @@ def test_readiness_failure_when_db_unavailable():
 
     assert result["ready"] is False
     assert result["checks"]["db"]["ok"] is False
-

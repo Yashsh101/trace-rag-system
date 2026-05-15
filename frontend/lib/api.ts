@@ -75,6 +75,13 @@ export class RagApiClient {
   }
 
   private async request<T>(path: string, init: RequestInit & { auth?: boolean } = {}) {
+    if (!this.baseUrl) {
+      throw new RagApiError("API base URL is not configured. Set it in Settings or NEXT_PUBLIC_RAG_API_BASE_URL.", 0, null);
+    }
+    if (init.auth !== false && !this.apiKey) {
+      throw new RagApiError("API key is not configured. Set it in Settings.", 0, null);
+    }
+
     const headers = new Headers(init.headers);
     if (init.auth !== false) headers.set("X-API-Key", this.apiKey);
 

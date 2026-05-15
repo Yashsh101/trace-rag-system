@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 
 from pydantic import Field, field_validator, model_validator
@@ -20,7 +21,7 @@ class Settings(BaseSettings):
     rate_limit_backend: str = "memory"
     redis_url: str | None = None
 
-    database_url: str = "postgresql+psycopg://rag_user:rag_password@localhost:5432/rag_db"
+    database_url: str = Field(default_factory=lambda: os.environ.get("DATABASE_URL", "sqlite:///./storage/local-rag.db"))
     storage_backend: str = "local"
     local_storage_path: str = "storage"
     s3_endpoint_url: str | None = None

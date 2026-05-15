@@ -29,14 +29,20 @@ app.add_exception_handler(AppError, app_error_handler)
 app.add_exception_handler(Exception, unhandled_error_handler)
 
 
+@app.get("/health")
+def root_health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 @app.middleware("http")
 async def request_context_middleware(request: Request, call_next):
     trace_id = request.headers.get("x-trace-id", uuid.uuid4().hex)
     request.state.trace_id = trace_id
     started = time.perf_counter()
     try:
-        if request.url.path != "/api/v1/health":
-            rate_limiter.check(request.headers.get("X-API-Key") or request.client.host if request.client else "unknown")
+        if request.method != "OPTIONS" and request.url.path not in {"/health", "/api/v1/health", "/api/v1/health/ready"}:
+            client_key = request.headers.get("X-API-Key") or (request.client.host if request.client else "unknown")
+            rate_limiter.check(client_key)
         response = await call_next(request)
     except AppError as exc:
         logger.warning(

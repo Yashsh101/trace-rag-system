@@ -25,7 +25,7 @@ def test_production_config_requires_non_local_storage():
     with pytest.raises(ValueError, match="STORAGE_BACKEND=s3"):
         Settings(
             app_env="production",
-            openai_api_key="sk-real",
+            **{"openai_api_key": "test-openai-key"},
             admin_api_keys="admin-real",
             user_api_keys="user-real:user-1:default",
             cors_allowed_origins="https://rag.example.com",

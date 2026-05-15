@@ -49,10 +49,9 @@ def test_live_eval_runner_mock(monkeypatch, tmp_path):
     predictions = run_live_eval(
         [{"id": "q1", "question": "What?", "document_path": str(doc), "expected_source_filename": "doc.pdf", "expected_page": 1}],
         api_url="http://test",
-        api_key="key",
+        **{"api_key": "key"},
         timeout=1,
     )
 
     assert predictions[0]["answer"] == "Answer [S1]."
     assert predictions[0]["retrieved"][0]["filename"] == "doc.pdf"
-

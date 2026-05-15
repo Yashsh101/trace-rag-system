@@ -37,7 +37,7 @@ export default function SettingsPage() {
           <CardContent className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="api-url">API base URL</Label>
-              <Input id="api-url" value={apiBaseUrl} onChange={(event) => setApiBaseUrl(event.target.value)} placeholder="http://127.0.0.1:8000" />
+              <Input id="api-url" value={apiBaseUrl} onChange={(event) => setApiBaseUrl(event.target.value)} placeholder="https://your-api.railway.app" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="api-key">API key</Label>
