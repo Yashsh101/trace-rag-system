@@ -39,3 +39,9 @@ build/
 *.ipynb_checkpoints
 
 .vercel
+
+# Secrets / local artifacts
+*.pem
+*.key
+trace_rag.db
+uploads/
