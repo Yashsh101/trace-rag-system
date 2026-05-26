@@ -69,6 +69,13 @@ class Settings(BaseSettings):
     def max_upload_bytes(self) -> int:
         return self.max_upload_mb * 1024 * 1024
 
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_database_url_scheme(cls, value: str) -> str:
+        if isinstance(value, str) and value.startswith("postgresql://"):
+            return value.replace("postgresql://", "postgresql+psycopg://", 1)
+        return value
+
     @field_validator(
         "embedding_dimension",
         "max_upload_mb",
