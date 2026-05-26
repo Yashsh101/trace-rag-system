@@ -2,6 +2,10 @@ import logging
 import time
 import uuid
 
+@app.get("/")
+async def root():
+    return {"status": "ok"}
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
