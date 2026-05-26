@@ -2,10 +2,6 @@ import logging
 import time
 import uuid
 
-@app.get("/")
-async def root():
-    return {"status": "ok"}
-
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
@@ -20,7 +16,24 @@ configure_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title=settings.app_name, version="0.1.0")
-allowed_origins = [origin.strip() for origin in settings.cors_allowed_origins.split(",") if origin.strip()]
+
+
+@app.get("/")
+async def root():
+    return {"status": "ok"}
+
+
+@app.get("/api/v1/health")
+async def health():
+    return {"status": "ok"}
+
+
+allowed_origins = [
+    origin.strip()
+    for origin in settings.cors_allowed_origins.split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -28,7 +41,9 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["X-API-Key", "X-Trace-ID", "Content-Type"],
 )
+
 app.include_router(router, prefix="/api/v1")
+
 app.add_exception_handler(AppError, app_error_handler)
 app.add_exception_handler(Exception, unhandled_error_handler)
 
@@ -38,11 +53,24 @@ async def request_context_middleware(request: Request, call_next):
     trace_id = request.headers.get("x-trace-id", uuid.uuid4().hex)
     request.state.trace_id = trace_id
     started = time.perf_counter()
+
     try:
-        if request.method != "OPTIONS" and request.url.path not in {"/api/v1/health", "/api/v1/health/ready"}:
-            client_key = request.headers.get("X-API-Key") or (request.client.host if request.client else "unknown")
+        if (
+            request.method != "OPTIONS"
+            and request.url.path not in {
+                "/",
+                "/api/v1/health",
+                "/api/v1/health/ready",
+            }
+        ):
+            client_key = (
+                request.headers.get("X-API-Key")
+                or (request.client.host if request.client else "unknown")
+            )
             rate_limiter.check(client_key)
+
         response = await call_next(request)
+
     except AppError as exc:
         logger.warning(
             "request_rejected",
@@ -54,16 +82,34 @@ async def request_context_middleware(request: Request, call_next):
                 "status_code": exc.status_code,
             },
         )
+
         return JSONResponse(
             status_code=exc.status_code,
-            content={"error": {"code": exc.code, "message": exc.message, "trace_id": trace_id}},
+            content={
+                "error": {
+                    "code": exc.code,
+                    "message": exc.message,
+                    "trace_id": trace_id,
+                }
+            },
             headers={"x-trace-id": trace_id},
         )
+
     except Exception:
-        logger.exception("request_failed", extra={"trace_id": trace_id, "method": request.method, "path": request.url.path})
+        logger.exception(
+            "request_failed",
+            extra={
+                "trace_id": trace_id,
+                "method": request.method,
+                "path": request.url.path,
+            },
+        )
         raise
+
     response.headers["x-trace-id"] = trace_id
+
     elapsed_ms = int((time.perf_counter() - started) * 1000)
+
     logger.info(
         "request_completed method=%s path=%s status=%s latency_ms=%s trace_id=%s",
         request.method,
@@ -80,4 +126,5 @@ async def request_context_middleware(request: Request, call_next):
             "latency_ms": elapsed_ms,
         },
     )
+
     return response
