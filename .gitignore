@@ -45,3 +45,6 @@ build/
 *.key
 trace_rag.db
 uploads/
+secrets/
+credentials.json
+service-account*.json
