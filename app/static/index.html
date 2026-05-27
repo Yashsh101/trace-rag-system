@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DocuMind AI Copilot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar glass-card" aria-label="Document workspace">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M7 3.75h6.4L18 8.35v11.9H7V3.75Z" stroke="currentColor" stroke-width="1.7" />
+              <path d="M13 4v5h5M9.5 12h5M9.5 15h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div>
+            <p class="eyebrow">Workspace</p>
+            <h1>DocuMind</h1>
+          </div>
+        </div>
+
+        <label id="dropzone" class="upload-card" for="file-input">
+          <input id="file-input" type="file" accept="application/pdf" multiple />
+          <span class="upload-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 15V4m0 0 4 4m-4-4-4 4M5 15.5V18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <span class="upload-title">Drop PDFs here</span>
+          <span class="upload-copy">or click to upload documents into the RAG index</span>
+          <span class="progress-track" aria-hidden="true">
+            <span id="upload-progress" class="progress-fill"></span>
+          </span>
+          <span id="upload-status" class="upload-status">Idle</span>
+        </label>
+
+        <div class="sidebar-section-heading">
+          <span>Documents</span>
+          <span id="document-count" class="count-badge">0</span>
+        </div>
+
+        <div id="document-list" class="document-list" aria-live="polite"></div>
+      </aside>
+
+      <main class="main-panel glass-card">
+        <header class="app-header">
+          <div class="header-title">
+            <div class="logo-orb" aria-hidden="true"></div>
+            <div>
+              <p class="eyebrow">RAG Copilot</p>
+              <h2>Ask your knowledge base</h2>
+            </div>
+          </div>
+          <div class="header-actions">
+            <span class="model-badge">GPT-4o-mini · Hybrid RAG</span>
+            <span class="status-badge"><span class="status-dot"></span><span id="status-label">Ready</span></span>
+          </div>
+        </header>
+
+        <section id="chat-feed" class="chat-feed" aria-live="polite">
+          <div id="empty-state" class="empty-state">
+            <div class="empty-illustration" aria-hidden="true">
+              <svg viewBox="0 0 220 160" fill="none">
+                <rect x="42" y="28" width="92" height="112" rx="18" fill="url(#docGradient)" opacity=".94" />
+                <rect x="62" y="55" width="52" height="8" rx="4" fill="white" opacity=".82" />
+                <rect x="62" y="76" width="42" height="7" rx="3.5" fill="white" opacity=".55" />
+                <rect x="62" y="94" width="58" height="7" rx="3.5" fill="white" opacity=".55" />
+                <circle cx="142" cy="74" r="32" fill="#111827" stroke="url(#ringGradient)" stroke-width="9" />
+                <path d="M166 98l26 26" stroke="url(#ringGradient)" stroke-width="12" stroke-linecap="round" />
+                <path d="M135 73h15M142.5 65.5v15" stroke="white" stroke-width="5" stroke-linecap="round" opacity=".9" />
+                <defs>
+                  <linearGradient id="docGradient" x1="42" y1="28" x2="142" y2="132" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#6366f1" />
+                    <stop offset="1" stop-color="#8b5cf6" />
+                  </linearGradient>
+                  <linearGradient id="ringGradient" x1="111" y1="42" x2="197" y2="130" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#6366f1" />
+                    <stop offset="1" stop-color="#8b5cf6" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <h3>Search documents with <span>grounded answers</span></h3>
+            <p>Upload source material, ask a question, and review cited passages under each response.</p>
+          </div>
+        </section>
+
+        <form id="chat-form" class="input-dock" autocomplete="off">
+          <input id="chat-input" type="text" placeholder="Ask about your documents..." aria-label="Ask a question" />
+          <button id="send-button" class="send-button" type="submit" aria-label="Send question">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 12 19 5l-4 14-3-6-7-1Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </form>
+      </main>
+    </div>
+
+    <div id="toast-region" class="toast-region" aria-live="polite"></div>
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>
