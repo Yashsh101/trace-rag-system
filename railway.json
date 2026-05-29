@@ -2,7 +2,7 @@
   "$schema": "https://railway.com/railway.schema.json",
   "deploy": {
     "preDeployCommand": "alembic upgrade head",
-    "startCommand": "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}",
+    "startCommand": "sh -c 'uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}'",
     "healthcheckPath": "/api/v1/health",
     "healthcheckTimeout": 60
   }
