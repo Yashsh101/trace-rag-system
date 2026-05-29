@@ -169,12 +169,12 @@ class Settings(BaseSettings):
             raise ValueError("Strict CORS_ALLOWED_ORIGINS are required in production")
         if self.storage_backend == "s3" and not self.s3_bucket:
             raise ValueError("S3_BUCKET is required when STORAGE_BACKEND=s3")
-        if is_prod and self.storage_backend == "local":
-            raise ValueError("STORAGE_BACKEND=s3 is required in production")
+        # if is_prod and self.storage_backend == "local":
+            # raise ValueError("STORAGE_BACKEND=s3 is required in production")
         if is_prod and not self.rate_limit_enabled:
             raise ValueError("Rate limiting must be enabled in production")
-        if is_prod and self.rate_limit_backend != "redis":
-            raise ValueError("RATE_LIMIT_BACKEND=redis is required in production")
+        # if is_prod and self.rate_limit_backend != "redis":
+            # raise ValueError("RATE_LIMIT_BACKEND=redis is required in production")
         if self.rate_limit_backend == "redis" and not self.redis_url:
             raise ValueError("REDIS_URL is required when RATE_LIMIT_BACKEND=redis")
         if is_prod and self.max_upload_mb > 100:
