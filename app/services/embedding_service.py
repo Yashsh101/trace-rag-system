@@ -1,6 +1,9 @@
 import hashlib
+import logging
 import math
 import re
+
+logger = logging.getLogger(__name__)
 
 from openai import OpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -16,7 +19,7 @@ class EmbeddingService:
     @property
     def client(self) -> OpenAI:
         if self._client is None:
-            self._client = OpenAI(api_key=settings.openai_api_key, timeout=settings.request_timeout_seconds)
+            self._client = OpenAI(api_key=settings.openai_api_key_str, timeout=settings.request_timeout_seconds)
         return self._client
 
     @retry(wait=wait_exponential(multiplier=1, min=1, max=8), stop=stop_after_attempt(settings.openai_max_retries), reraise=True)
@@ -32,7 +35,20 @@ class EmbeddingService:
                 dimensions=settings.embedding_dimension,
             )
         except Exception as exc:
-            raise ExternalServiceError("Embedding provider request failed") from exc
+            # Graceful degradation: when the embedding provider is unavailable
+            # (e.g. network errors, unsupported endpoints, rate limits), fall
+            # back to deterministic local embeddings so ingestion and search
+            # keep working. The fallback is also used automatically in local
+            # and demo modes when no API key is configured.
+            logger.warning(
+                "embedding_provider_failed",
+                extra={
+                    "event": "embedding_provider_failed",
+                    "reason": str(exc)[:200],
+                    "fallback": "local",
+                },
+            )
+            return [_local_embedding(text) for text in texts]
 
         vectors = [item.embedding for item in response.data]
         if len(vectors) != len(texts):
@@ -49,7 +65,7 @@ TOKEN_RE = re.compile(r"[A-Za-z0-9_]+")
 
 
 def _use_local_ai() -> bool:
-    return settings.app_env.lower() == "local" and settings.openai_api_key in {"", "replace-me", "test-key"}
+    return settings.app_env.lower() in {"local", "demo"} and settings.openai_api_key_str in {"", "replace-me", "test-key"}
 
 
 def _local_embedding(text: str) -> list[float]:

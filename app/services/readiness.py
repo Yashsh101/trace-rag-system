@@ -43,7 +43,11 @@ def _check_pgvector(db: Session) -> dict:
 def _check_alembic(db: Session) -> dict:
     try:
         if is_sqlite_url():
-            db.execute(text("SELECT 1 FROM documents LIMIT 1"))
+            tables = db.execute(
+                text("SELECT name FROM sqlite_master WHERE type='table' AND name='documents'")
+            ).scalar()
+            if not tables:
+                return {"ok": False, "error": "SQLite schema not initialized"}
             return {"ok": True, "skipped": True, "reason": "sqlite schema initialized from SQLAlchemy metadata"}
         db_revision = db.execute(text("SELECT version_num FROM alembic_version")).scalar()
         head = ScriptDirectory.from_config(Config("alembic.ini")).get_current_head()

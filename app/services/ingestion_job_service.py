@@ -13,8 +13,17 @@ logger = logging.getLogger(__name__)
 
 
 class IngestionJobService:
-    def __init__(self, ingestion_service: IngestionService | None = None):
+    def __init__(
+        self,
+        ingestion_service: IngestionService | None = None,
+        sync_mode: bool = False,
+    ):
         self.ingestion_service = ingestion_service or IngestionService()
+        # Synchronous mode processes the PDF inline inside the request
+        # handler instead of queueing a job for the background worker.
+        # Enable this on serverless platforms (Vercel, Cloud Run) that
+        # cannot host the separate ingestion worker process.
+        self.sync_mode = sync_mode
 
     def create_job(
         self,
@@ -52,6 +61,14 @@ class IngestionJobService:
         db.add(job)
         db.commit()
         db.refresh(job)
+
+        if self.sync_mode:
+            self.process_job(job.id)
+            # process_job mutates the job inside a separate session, so
+            # refresh the request-scoped object so the caller sees the
+            # final status, document id and chunk counts.
+            db.refresh(job)
+
         return job
 
     def process_job(self, job_id: str, worker_id: str | None = None) -> None:

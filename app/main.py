@@ -11,11 +11,22 @@ from app.core.config import settings
 from app.core.errors import AppError, app_error_handler, unhandled_error_handler
 from app.core.logging import configure_logging
 from app.core.rate_limit import rate_limiter
+from app.services.schema import initialize_sqlite_schema
 
 configure_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title=settings.app_name, version="0.1.0")
+
+
+@app.on_event("startup")
+async def _initialize_sqlite_schema() -> None:
+    """Initialize the SQLite schema on startup for local/demo mode.
+
+    On Postgres deployments, ``alembic upgrade head`` manages the schema and
+    this call is a no-op.
+    """
+    initialize_sqlite_schema()
 
 
 @app.get("/")

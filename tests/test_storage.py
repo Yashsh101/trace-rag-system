@@ -21,7 +21,29 @@ def test_missing_artifact_raises_not_found(tmp_path):
         storage.get_bytes(f"local://{tmp_path.as_posix()}/missing.pdf")
 
 
-def test_production_config_requires_non_local_storage():
+def test_production_config_requires_non_local_storage(monkeypatch):
+    import os
+
+    from app.core import config as config_mod
+
+    # Settings() reads env vars even when fields are passed explicitly,
+    # so clear RATE_LIMIT_ENABLED to ensure the production validation
+    # under test is not short-circuited by the local test environment.
+    # pydantic-settings reads env vars even when fields are passed explicitly,
+    # so neutralize the local test environment before constructing Settings.
+    for key in (
+        "RATE_LIMIT_ENABLED",
+        "ADMIN_API_KEYS",
+        "USER_API_KEYS",
+        "OPENAI_API_KEY",
+        "CORS_ALLOWED_ORIGINS",
+        "STORAGE_BACKEND",
+        "RATE_LIMIT_BACKEND",
+        "REDIS_URL",
+        "S3_BUCKET",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setattr(config_mod.settings, "rate_limit_enabled", True)
     with pytest.raises(ValueError, match="STORAGE_BACKEND=s3"):
         Settings(
             app_env="production",

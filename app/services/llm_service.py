@@ -23,7 +23,7 @@ class LLMService:
     @property
     def client(self) -> OpenAI:
         if self._client is None:
-            self._client = OpenAI(api_key=settings.openai_api_key, timeout=settings.request_timeout_seconds)
+            self._client = OpenAI(api_key=settings.openai_api_key_str, timeout=settings.request_timeout_seconds)
         return self._client
 
     @retry(wait=wait_exponential(multiplier=1, min=1, max=8), stop=stop_after_attempt(settings.openai_max_retries), reraise=True)
@@ -50,7 +50,22 @@ class LLMService:
         except Exception as exc:
             raise ExternalServiceError("LLM provider request failed") from exc
 
-        answer_text = response.output_text.strip()
+        # Guard against unexpected payloads (e.g. thinking/reasoning models
+        # whose response contains no text output, or provider quirks that
+        # return an empty output list). Surface the raw payload in the error
+        # so operators can see exactly what the provider returned.
+        try:
+            answer_text = getattr(response, "output_text", None)
+        except TypeError:
+            # Some provider payloads (e.g. thinking models) return a response
+            # whose output list is None; the output_text property then raises
+            # TypeError during iteration. Treat as an unsupported response.
+            answer_text = None
+        if not answer_text:
+            raise ExternalServiceError(
+                "LLM provider returned an empty or unsupported response (output payload is missing text content)"
+            )
+        answer_text = answer_text.strip()
         if not answer_text:
             raise ExternalServiceError("LLM provider returned an empty answer")
 
@@ -68,7 +83,7 @@ SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
 
 
 def _use_local_ai() -> bool:
-    return settings.app_env.lower() == "local" and settings.openai_api_key in {"", "replace-me", "test-key"}
+    return settings.app_env.lower() in {"local", "demo"} and settings.openai_api_key_str in {"", "replace-me", "test-key"}
 
 
 def _local_answer(source_context: str) -> str:

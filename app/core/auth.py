@@ -25,11 +25,11 @@ def require_auth(x_api_key: str | None = Header(default=None, alias="X-API-Key")
         logger.warning("auth_failed", extra={"event": "auth_failed", "reason": "missing_api_key"})
         raise AuthenticationError("Missing X-API-Key header")
 
-    admin_keys = _parse_admin_keys(settings.admin_api_keys)
+    admin_keys = _parse_admin_keys(settings.admin_api_keys_str)
     if x_api_key in admin_keys:
         return AuthContext(user_id="admin", groups=["admin"], role="admin")
 
-    user = _parse_user_keys(settings.user_api_keys).get(x_api_key)
+    user = _parse_user_keys(settings.user_api_keys_str).get(x_api_key)
     if user is not None:
         return user
 

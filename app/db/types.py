@@ -5,7 +5,7 @@ from app.core.config import settings
 
 
 def is_sqlite_url(database_url: str | None = None) -> bool:
-    return (database_url or settings.database_url).startswith("sqlite")
+    return (database_url or settings.database_url_str).startswith("sqlite")
 
 
 def json_document_type():

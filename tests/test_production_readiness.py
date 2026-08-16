@@ -5,7 +5,24 @@ from app.core.rate_limit import RedisRateLimiter
 from app.services.readiness import readiness_check
 
 
-def test_production_config_requires_admin_keys():
+def test_production_config_requires_admin_keys(monkeypatch):
+    from app.core import config as config_mod
+
+    # pydantic-settings reads env vars even when fields are passed explicitly,
+    # so neutralize the local test environment before constructing Settings.
+    for key in (
+        "RATE_LIMIT_ENABLED",
+        "ADMIN_API_KEYS",
+        "USER_API_KEYS",
+        "OPENAI_API_KEY",
+        "CORS_ALLOWED_ORIGINS",
+        "STORAGE_BACKEND",
+        "RATE_LIMIT_BACKEND",
+        "REDIS_URL",
+        "S3_BUCKET",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setattr(config_mod.settings, "rate_limit_enabled", True)
     with pytest.raises(ValueError, match="ADMIN_API_KEYS"):
         Settings(
             app_env="production",
@@ -19,7 +36,24 @@ def test_production_config_requires_admin_keys():
         )
 
 
-def test_production_config_rejects_wildcard_cors():
+def test_production_config_rejects_wildcard_cors(monkeypatch):
+    from app.core import config as config_mod
+
+    # pydantic-settings reads env vars even when fields are passed explicitly,
+    # so neutralize the local test environment before constructing Settings.
+    for key in (
+        "RATE_LIMIT_ENABLED",
+        "ADMIN_API_KEYS",
+        "USER_API_KEYS",
+        "OPENAI_API_KEY",
+        "CORS_ALLOWED_ORIGINS",
+        "STORAGE_BACKEND",
+        "RATE_LIMIT_BACKEND",
+        "REDIS_URL",
+        "S3_BUCKET",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setattr(config_mod.settings, "rate_limit_enabled", True)
     with pytest.raises(ValueError, match="Strict CORS"):
         Settings(
             app_env="production",
@@ -56,6 +90,8 @@ def test_redis_limiter_uses_redis_client_mock(monkeypatch):
 
     monkeypatch.setitem(__import__("sys").modules, "redis", type("RedisModule", (), {"Redis": FakeRedis}))
 
+    from app.core import config as config_mod
+    monkeypatch.setattr(config_mod.settings, "rate_limit_enabled", True)
     limiter = RedisRateLimiter("redis://localhost:6379/0")
     limiter.check("user-key")
 

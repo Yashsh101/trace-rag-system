@@ -13,7 +13,7 @@ else:
     # Prevent import-time hangs when Postgres is unreachable (tests/imports only need engine creation)
     engine_kwargs["connect_args"] = {"connect_timeout": 3}
 
-engine = create_engine(settings.database_url, **engine_kwargs)
+engine = create_engine(settings.database_url_str, **engine_kwargs)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
 
 

@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 import uuid
 
@@ -26,7 +27,8 @@ from app.services.retrieval_service import RetrievalService
 
 router = APIRouter()
 ingestion_service = IngestionService()
-ingestion_job_service = IngestionJobService(ingestion_service=ingestion_service)
+_sync_mode = os.environ.get("INGESTION_MODE", "").lower() in {"sync", "synchronous", "inline"}
+ingestion_job_service = IngestionJobService(ingestion_service=ingestion_service, sync_mode=_sync_mode)
 retrieval_service = RetrievalService()
 llm_service = LLMService()
 tracer = LangfuseTracer()
@@ -165,7 +167,48 @@ def query(
 
         source_context, citation_payloads = build_source_context(results, max_chars=settings.max_context_chars)
         llm_started = time.perf_counter()
-        llm_result = llm_service.answer(question=payload.question, source_context=source_context)
+        try:
+            llm_result = llm_service.answer(question=payload.question, source_context=source_context)
+        except AppError as exc:
+            # Graceful degradation: an LLM provider failure must not crash the
+            # request. Return a safe no-answer response and record the failure
+            # in the query log so it is visible in the trace UI and metrics.
+            logger.warning(
+                "llm_provider_failed",
+                extra={"event": "llm_provider_failed", "reason": str(exc)[:200], "trace_id": trace_id},
+            )
+            answer = "I could not find this in the uploaded documents."
+            metrics = _build_metrics(
+                started=started,
+                retrieval_metrics=retrieval_result.metrics,
+                llm_latency_ms=_elapsed_ms(llm_started),
+                prompt_tokens=None,
+                completion_tokens=None,
+                empty_retrieval=False,
+                no_answer=True,
+                citation_failure=False,
+                llm_failed=True,
+            )
+            query_log = QueryLog(
+                trace_id=trace_id,
+                query=payload.question,
+                answer=answer,
+                retrieved_chunk_ids=[result.chunk.id for result in results],
+                latency_ms=_elapsed_ms(started),
+                model=settings.openai_chat_model,
+                trace_json={**retrieval_result.trace, "retrieved_chunks": []},
+                metrics_json=metrics,
+                validation_json={"support_ok": False, "reason": "llm_provider_failed"},
+                user_id=auth.user_id,
+                groups=auth.groups,
+                auth_role=auth.role,
+                denied_retrieval_count=denied_retrieval_count,
+                status="no_answer",
+            )
+            db.add(query_log)
+            db.flush()
+            db.commit()
+            return QueryResponse(trace_id=trace_id, query_log_id=query_log.id, answer=answer, citations=[], no_answer=True)
         llm_latency_ms = _elapsed_ms(llm_started)
         answer, selected_citation_payloads = select_citations_for_answer(llm_result.answer, citation_payloads)
         support_ok = answer_has_strong_citation_support(answer, selected_citation_payloads, min_score=settings.min_citation_score)
@@ -375,6 +418,7 @@ def _build_metrics(
     empty_retrieval: bool,
     no_answer: bool,
     citation_failure: bool,
+    llm_failed: bool = False,
 ) -> dict:
     return {
         "query_latency_ms": _elapsed_ms(started),
@@ -384,6 +428,7 @@ def _build_metrics(
         "empty_retrieval": empty_retrieval,
         "no_answer": no_answer,
         "citation_failure": citation_failure,
+        "llm_failed": llm_failed,
         "estimated_cost": estimate_cost(prompt_tokens, completion_tokens),
     }
 

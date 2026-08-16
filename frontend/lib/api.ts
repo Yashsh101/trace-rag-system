@@ -75,19 +75,19 @@ export class RagApiClient {
   }
 
   private async request<T>(path: string, init: RequestInit & { auth?: boolean } = {}) {
-    if (!this.baseUrl) {
-      throw new RagApiError("API base URL is not configured. Set it in Settings or NEXT_PUBLIC_RAG_API_BASE_URL.", 0, null);
-    }
     if (init.auth !== false && !this.apiKey) {
-      throw new RagApiError("API key is not configured. Set it in Settings.", 0, null);
+      throw new RagApiError("API key is not configured. Set it in Settings or NEXT_PUBLIC_RAG_API_KEY.", 0, null);
     }
 
+    // An empty base URL is valid: it means the RAG API is served on the
+    // same origin (for example a combined Vercel deployment), so relative
+    // paths resolve automatically against the console URL.
     const headers = new Headers(init.headers);
     if (init.auth !== false) headers.set("X-API-Key", this.apiKey);
 
     let response: Response;
     try {
-      response = await fetch(`${this.baseUrl}${path}`, {
+      response = await fetch(this.baseUrl ? `${this.baseUrl}${path}` : path, {
         ...init,
         headers,
         cache: "no-store"

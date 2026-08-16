@@ -8,6 +8,15 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 logger = logging.getLogger(__name__)
 
 
+def _secret_to_str(value: str | SecretStr | None) -> str:
+    """Convert a SecretStr-or-str field to a plain string safely."""
+    if value is None:
+        return ""
+    if isinstance(value, SecretStr):
+        return value.get_secret_value()
+    return str(value)
+
+
 class Settings(BaseSettings):
     """Application settings loaded from environment variables.
     
@@ -25,7 +34,7 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = "TraceRAG"
-    app_env: Literal["local", "test", "production"] = "local"
+    app_env: Literal["local", "test", "production", "demo"] = "local"
     log_level: str = "INFO"
 
     # Authentication & Authorization
@@ -106,14 +115,35 @@ class Settings(BaseSettings):
         return self.max_upload_mb * 1024 * 1024
 
     @property
+    def admin_api_keys_str(self) -> str:
+        """Get admin API keys as a string (use when parsing keys)."""
+        return _secret_to_str(self.admin_api_keys)
+
+    @property
+    def user_api_keys_str(self) -> str:
+        """Get user API keys as a string (use when parsing keys)."""
+        return _secret_to_str(self.user_api_keys)
+
+
+    @property
+    def s3_access_key_id_str(self) -> str:
+        """Get S3 access key as a string."""
+        return _secret_to_str(self.s3_access_key_id)
+
+    @property
+    def s3_secret_access_key_str(self) -> str:
+        """Get S3 secret key as a string."""
+        return _secret_to_str(self.s3_secret_access_key)
+
+    @property
     def database_url_str(self) -> str:
         """Get database URL as string (use when passing to SQLAlchemy)."""
-        return self.database_url.get_secret_value() if self.database_url else ""
+        return _secret_to_str(self.database_url)
 
     @property
     def openai_api_key_str(self) -> str:
         """Get OpenAI API key as string."""
-        return self.openai_api_key.get_secret_value() if self.openai_api_key else ""
+        return _secret_to_str(self.openai_api_key)
 
     @field_validator("database_url", mode="before")
     @classmethod
@@ -185,17 +215,18 @@ class Settings(BaseSettings):
             )
 
         is_prod = self.app_env.lower() in {"prod", "production"}
+        is_demo = self.app_env.lower() == "demo"
 
         # Database validation
         if not self.database_url_str:
             raise ValueError(
                 "DATABASE_URL is required (e.g., postgresql+psycopg://user:pass@host:5432/db)"
             )
-        if is_prod and not self.database_url_str.startswith("postgresql"):
+        if is_prod and not is_demo and not self.database_url_str.startswith("postgresql"):
             logger.warning("DATABASE_URL should use PostgreSQL in production")
 
         # OpenAI API Key validation
-        if is_prod:
+        if is_prod and not is_demo:
             openai_key = self.openai_api_key_str
             if not openai_key or openai_key in {"replace-me", "test-key", ""}:
                 raise ValueError(
@@ -204,7 +235,7 @@ class Settings(BaseSettings):
 
         # Admin API Keys validation
         admin_keys = self.admin_api_keys.get_secret_value() if isinstance(self.admin_api_keys, SecretStr) else str(self.admin_api_keys)
-        if is_prod:
+        if is_prod and not is_demo:
             if not admin_keys or "dev-" in admin_keys:
                 raise ValueError(
                     "Non-dev ADMIN_API_KEYS are required in production"
@@ -212,7 +243,7 @@ class Settings(BaseSettings):
 
         # User API Keys validation
         user_keys = self.user_api_keys.get_secret_value() if isinstance(self.user_api_keys, SecretStr) else str(self.user_api_keys)
-        if is_prod:
+        if is_prod and not is_demo:
             if not user_keys and not self.auth_provider_placeholder:
                 raise ValueError(
                     "USER_API_KEYS or AUTH_PROVIDER_PLACEHOLDER is required in production"
@@ -228,22 +259,28 @@ class Settings(BaseSettings):
             for origin in self.cors_allowed_origins.split(",")
             if origin.strip()
         ]
-        if is_prod and (not cors_origins or "*" in cors_origins):
+        if is_prod and not is_demo and (not cors_origins or "*" in cors_origins):
             raise ValueError(
                 "Strict CORS_ALLOWED_ORIGINS are required in production (comma-separated, no wildcards)"
+            )
+        if is_demo and (not cors_origins or "*" in cors_origins):
+            # Demo mode still rejects wildcard CORS for security hygiene;
+            # the demo deployment points CORS at its own origin explicitly.
+            raise ValueError(
+                "CORS_ALLOWED_ORIGINS are required (comma-separated, no wildcards)"
             )
 
         # Storage validation
         if self.storage_backend == "s3" and not self.s3_bucket:
             raise ValueError("S3_BUCKET is required when STORAGE_BACKEND=s3")
 
-        if is_prod and self.storage_backend == "local":
-            logger.warning(
-                "Using local storage in production. Consider S3 or similar for scalability."
+        if is_prod and self.storage_backend == "local" and not is_demo:
+            raise ValueError(
+                "STORAGE_BACKEND=s3 is required in production (local storage is only allowed in demo mode)"
             )
 
         # Rate limiting validation
-        if is_prod and not self.rate_limit_enabled:
+        if is_prod and not self.rate_limit_enabled and not is_demo:
             raise ValueError("Rate limiting must be enabled in production")
 
         if self.rate_limit_backend == "redis" and not self.redis_url:
@@ -252,8 +289,10 @@ class Settings(BaseSettings):
             )
 
         # Upload size validation
-        if is_prod and self.max_upload_mb > 100:
+        if is_prod and not is_demo and self.max_upload_mb > 100:
             raise ValueError("MAX_UPLOAD_MB must be <= 100 in production")
+        if is_demo and self.max_upload_mb > 10:
+            raise ValueError("MAX_UPLOAD_MB must be <= 10 in demo mode")
 
         return self
 
