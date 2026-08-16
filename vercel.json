@@ -4,7 +4,9 @@
     {
       "src": "frontend/**",
       "use": "@vercel/next",
-      "config": { "rootDirectory": "frontend" }
+      "config": {
+        "rootDirectory": "frontend"
+      }
     },
     {
       "src": "app/main.py",
@@ -19,6 +21,10 @@
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/.next",
   "routes": [
+    {
+      "src": "/api/v1/(.*)",
+      "dest": "/main.py"
+    },
     {
       "src": "/api/v1/(.*)",
       "dest": "/app/main.py"
