@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "builds": [
     {
-      "src": "package.json",
+      "src": "frontend/package.json",
       "use": "@vercel/next",
       "config": {
         "rootDirectory": "frontend"
@@ -24,6 +24,10 @@
     {
       "src": "/api/v1/(.*)",
       "dest": "/serverless.py"
+    },
+    {
+      "src": "/_next/static/(.*)",
+      "dest": "/frontend/_next/static/$1"
     },
     {
       "src": "/(.*)",
