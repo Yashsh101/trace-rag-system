@@ -15,6 +15,9 @@
       }
     }
   ],
+  "installCommand": "cd frontend && pnpm install --frozen-lockfile",
+  "buildCommand": "cd frontend && pnpm run build",
+  "outputDirectory": "frontend/.next",
   "routes": [
     {
       "src": "/api/v1/(.*)",
