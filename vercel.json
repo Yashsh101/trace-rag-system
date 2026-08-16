@@ -2,14 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "builds": [
     {
-      "src": "package.json",
+      "src": "frontend/package.json",
       "use": "@vercel/next",
       "config": {
         "rootDirectory": "frontend"
       }
     },
     {
-      "src": "app/main.py",
+      "src": "serverless.py",
       "use": "@vercel/python",
       "config": {
         "maxLambdaSize": "250mb",
@@ -23,11 +23,7 @@
   "routes": [
     {
       "src": "/api/v1/(.*)",
-      "dest": "/main.py"
-    },
-    {
-      "src": "/api/v1/(.*)",
-      "dest": "/app/main.py"
+      "dest": "/serverless.py"
     },
     {
       "src": "/(.*)",
