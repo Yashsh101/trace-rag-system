@@ -82,9 +82,9 @@ trace-rag-system/
 └── .github/workflows/  CI
 ```
 
-## Local Setup
+## Quickstart
 
-### Backend
+### 1. Clone and install
 
 ```bash
 git clone https://github.com/Yashsh101/trace-rag-system.git
@@ -92,7 +92,32 @@ cd trace-rag-system
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\Activate.ps1
 pip install -r requirements-dev.txt
-cp .env.example .env               # fill in APP_ENV, API keys, DATABASE_URL
+```
+
+### 2. Configure safe local mode
+
+```bash
+cp .env.example .env
+python scripts/init_local_db.py
+```
+
+The checked-in example uses SQLite, local storage, deterministic local AI, and non-production development keys. Never reuse these keys outside local testing.
+
+### 3. Run
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Open `http://localhost:8000/docs`. For the operator console, run `cd frontend && cp .env.example .env.local && npm ci && npm run dev`, then open `http://localhost:3000`.
+
+## Local Setup (Postgres option)
+
+### Backend
+
+```bash
+cp .env.example .env
+# Replace DATABASE_URL and credentials with local Postgres values.
 ```
 
 SQLite mode (default for `APP_ENV=local` or `demo` — no Docker needed):
@@ -222,9 +247,17 @@ cd frontend && npm run lint && npm run typecheck && npm run build
 
 The suite covers auth/ACL, chunking, embeddings, BM25/vector/hybrid retrieval, reranking, citation formatting, ingestion jobs, query/trace endpoints, observability, security red-teaming, and production-readiness checks. CI (`.github/workflows/ci.yml`) runs the suite against a Postgres service container.
 
+## Evaluation
+
+- **Dataset:** `evals/golden_qa.example.jsonl` is a small checked-in smoke dataset; it is not a benchmark claim or representative production corpus.
+- **Metrics:** The evaluator reports retrieval recall/precision, citation coverage, faithfulness, and answer-quality gates when predictions and an API/model configuration are available.
+- **Reproduction:** `python evals/run_eval.py --dataset evals/golden_qa.example.jsonl`.
+- **Baseline:** No external baseline or production quality score is claimed; compare changes against the same dataset and configuration.
+- **Limitations:** The example dataset is small, scanned PDFs require OCR, and live LLM evaluation requires credentials. Results are pending verification unless generated locally with the command above.
+
 ## Deployment
 
-**Vercel (single project, frontend + backend).** Push to `main` triggers a production build; `vercel.json` builds `frontend/` with `@vercel/next` and the root `serverless.py` with `@vercel/python`, routing `/api/v1/*` to the Python function.
+**Vercel (single project, frontend + backend).** `vercel.json` describes a combined deployment that builds `frontend/` with `@vercel/next` and routes `/api/v1/*` to `serverless.py`. The public demo returned HTTP 200 when last checked on 2026-10-03 and sends `x-robots-tag: noindex`; current deployment freshness is pending verification.
 
 Required production env vars on the Vercel project (see `.env.example`): `APP_ENV=demo`, `DATABASE_URL=sqlite:////tmp/trace-storage/trace.db`, `STORAGE_BACKEND=local`, `INGESTION_MODE=sync`, `CORS_ALLOWED_ORIGINS` set to your Vercel URL, and formatted `ADMIN_API_KEYS` / `USER_API_KEYS`.
 
