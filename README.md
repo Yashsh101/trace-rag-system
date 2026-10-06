@@ -15,7 +15,7 @@ A citation-gated retrieval-augmented generation (RAG) platform with full query t
 - **Document-level access control.** API keys carry a `user_id` and group memberships; ACL checks filter which documents a key can retrieve from.
 - **Durable ingestion jobs.** PDF uploads become tracked jobs with queued → processing → completed/failed lifecycle and a status endpoint.
 - **Evaluation gates.** A golden-QA eval runner (`evals/run_eval.py`) checks retrieval quality, faithfulness, and citation coverage.
-- **Graceful degradation.** A deterministic local mode (text hashing for embeddings, template-based answers) allows offline smoke tests and CI without API keys; production uses OpenAI embeddings and chat.
+- **Graceful degradation.** A deterministic local mode (text hashing for embeddings, template-based answers) allows offline smoke tests and CI without API keys; configured deployments can use OpenAI embeddings and chat.
 - **Operator console.** A Next.js App Router dashboard for ingestion, chat with citation inspection, trace review, and settings.
 
 ## Architecture and End-to-End Workflow
@@ -257,11 +257,11 @@ The suite covers auth/ACL, chunking, embeddings, BM25/vector/hybrid retrieval, r
 
 ## Deployment
 
-**Vercel (single project, frontend + backend).** `vercel.json` describes a combined deployment that builds `frontend/` with `@vercel/next` and routes `/api/v1/*` to `serverless.py`. The public demo returned HTTP 200 when last checked on 2026-10-03 and sends `x-robots-tag: noindex`; current deployment freshness is pending verification.
+**Vercel (single project, frontend + backend).** `vercel.json` describes a combined deployment that builds `frontend/` with `@vercel/next` and routes `/api/v1/*` to `serverless.py`. The public demo returned HTTP 200 when checked on 2026-10-07 and sends `x-robots-tag: noindex`; deployment freshness may change independently of this repository.
 
 Required production env vars on the Vercel project (see `.env.example`): `APP_ENV=demo`, `DATABASE_URL=sqlite:////tmp/trace-storage/trace.db`, `STORAGE_BACKEND=local`, `INGESTION_MODE=sync`, `CORS_ALLOWED_ORIGINS` set to your Vercel URL, and formatted `ADMIN_API_KEYS` / `USER_API_KEYS`.
 
-**Production-grade (your own infra).** `Dockerfile` + `docker-compose.prod.yml` for the backend with Postgres + pgvector and Redis; see `DEPLOYMENT.md` and `RUNBOOK.md`. The frontend deploys anywhere Next.js runs.
+**Self-hosted deployment (your own infra).** `Dockerfile` + `docker-compose.prod.yml` for the backend with Postgres + pgvector and Redis; see `DEPLOYMENT.md` and `RUNBOOK.md`. The frontend deploys anywhere Next.js runs.
 
 ## Known Limitations
 
@@ -282,4 +282,4 @@ Required production env vars on the Vercel project (see `.env.example`): `APP_EN
 
 ## License and Author
 
-MIT License. Built by [Yash Sharma](https://github.com/Yashsh101) — MCA (AI/ML) student focused on production-grade RAG, NLP, and backend AI systems.
+MIT License. Built by [Yash Sharma](https://github.com/Yashsh101) — MCA (AI/ML) student focused on RAG, NLP, and backend AI systems.
